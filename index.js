@@ -963,13 +963,9 @@ function main() {
       throw error;
     }
   }
-  //   console.log(performance.now());
-  //   mapSeries(stateList?.states, insertRow)
-  //     .then((_) => console.log(performance.now()))
-  //     .catch((e) => console.log(e));
-  //   for (let index = 0; index < stateList.states.length; index++) {
-  //     const element = stateList.states[index];
-  //     insertRow(element);
-  //   }
+  console.log(performance.now());
+  mapSeries(stateList?.states, insertRow)
+    .then((_) => console.log(performance.now()))
+    .catch((e) => console.log(e));
 }
 main();
