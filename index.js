@@ -926,46 +926,58 @@ const stateList = {
   ],
 };
 
-function main() {
-  const knex = knexClient({
-    client: "postgres",
-    connection: {
-      host: "localhost",
-      port: 6300,
-      user: "postgres",
-      password: "admin",
-      database: "dbfirst",
-    },
-    pool: {
-      min: 0,
-      max: 5,
-      afterCreate: (conn, done) => {
-        console.log("Connection Established.");
-        done();
+async function main() {
+  try {
+    const knex = knexClient({
+      client: "postgres",
+      connection: {
+        host: "localhost",
+        port: 6300,
+        user: "postgres",
+        password: "admin",
+        database: "dbfirst",
       },
-    },
-  });
-  async function insertRow(row, cb) {
-    try {
-      const data = await knex
-        .insert([{ name: row.state, sid: row.sid, parent_id: null }], ["id"])
-        .into("public.tbl_state_district");
+      pool: {
+        min: 0,
+        max: 5,
+        afterCreate: (conn, done) => {
+          console.log("Connection Established.");
+          done();
+        },
+      },
+    });
+    await knex.schema.createTableIfNotExists(
+      "tbl_state_district",
+      function (table) {
+        table.increments("id").primary();
+        table.string("name");
+        table.string("sid");
+        table.integer("parent_id");
+      }
+    );
+    async function insertRow(row, cb) {
+      try {
+        const data = await knex
+          .insert([{ name: row.state, sid: row.sid, parent_id: null }], ["id"])
+          .into("tbl_state_district");
 
-      const childData = row.districts?.map((item) => ({
-        name: item,
-        parent_id: Number(data[0]?.id) ?? null,
-        sid: null,
-      }));
+        const childData = row.districts?.map((item) => ({
+          name: item,
+          parent_id: Number(data[0]?.id) ?? null,
+          sid: null,
+        }));
 
-      const chunkSize = 100;
-      await knex.batchInsert("public.tbl_state_district", childData, chunkSize);
-    } catch (error) {
-      throw error;
+        const chunkSize = 100;
+        await knex.batchInsert("tbl_state_district", childData, chunkSize);
+      } catch (error) {
+        throw error;
+      }
     }
+    console.log(performance.now());
+    await mapSeries(stateList?.states, insertRow);
+    console.log(performance.now());
+  } catch (q) {
+    console.log(q);
   }
-  console.log(performance.now());
-  mapSeries(stateList?.states, insertRow)
-    .then((_) => console.log(performance.now()))
-    .catch((e) => console.log(e));
 }
 main();
